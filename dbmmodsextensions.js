@@ -37,16 +37,16 @@ function activate(context) {
                 if(mod && mod.name && mod.html){              
                     vscode.window.showInformationMessage(`${mod.name} loaded into DBM Mods Extensions`);
                   
-                    const buildFile = function(rebuild){
-                      mod = require(modFileName);
+                    const buildFile = function(modFile){
+                      delete require.cache[require.resolve(modFile)];
+                      mod = require(modFile);
                       html = mod.html(false, data);  
-                      console.log(rebuild ? `Rebuilding HTML`: `Building Mod HTML..`);
-                      const newHTML =  buildHTML(mod.name, html);
-                      fs.writeFileSync(path.join(tmpFolder, tmpFile), newHTML)
+                      console.log(`Building Mod HTML..`);
+                      fs.writeFileSync(path.join(tmpFolder, tmpFile), buildHTML(mod.name, html));
                     }
-                    changedEvent = vscode.workspace.onDidSaveTextDocument(e =>  buildFile(true));
+                    changedEvent = vscode.workspace.onDidSaveTextDocument(e =>  buildFile(modFileName));
 
-                    buildFile();
+                    buildFile(modFileName);
                     console.log(`Wrote Temp File..`);
                     if(fs.existsSync(path.join(tmpFolder, tmpFile))) {
                         loadIntoServer(tmpFolder,'./' + tmpFile);                      
@@ -79,7 +79,7 @@ function loadIntoServer(filePath, file){
         open: true, // When false, it won't load your browser by default.
         ignore: 'scss,my/templates', // comma-separated string for paths to ignore
         file: file, // When set, serve this file for every 404 (useful for single-page applications)
-        wait: 3000, // Waits for all changes, before reloading. Defaults to 0 sec.
+        wait: 500, // Waits for all changes, before reloading. Defaults to 0 sec.
         mount: [['/components', './node_modules']], // Mount a directory to a route.
         logLevel: 2, // 0 = errors only, 1 = some, 2 = lots
         middleware: [function(req, res, next) { next(); }] // Takes an array of Connect-compatible middleware that are injected into the server middleware stack
